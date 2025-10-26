@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  ragenius:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./chromadb_store:/app/chromadb_store
+      - ./data:/app/data
+      - ./upload_files:/app/upload_files
+    env_file:
+      - .env
+    restart: unless-stopped
