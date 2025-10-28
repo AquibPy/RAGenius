@@ -46,31 +46,28 @@ class ChromaVectorStore:
         chunks = self.emb_pipe.chunk_documents(documents)
 
         # Generate embeddings using Azure OpenAI
-        embeddings = self.emb_pipe.generate_embeddings(chunks)
+        chunk_text = [c.page_content for c in chunks]
+        embeddings = self.emb_pipe.generate_embeddings(chunk_text)
 
         ids, metadatas = [], []
 
-        for i, (chunk_text, emb) in enumerate(zip(chunks, embeddings)):
+        for i, (chunk_doc, emb) in enumerate(zip(chunks, embeddings)):
             doc_id = f"doc_{uuid.uuid4().hex[:8]}_{i}"
             ids.append(doc_id)
 
-            metadata = {
-                "doc_index": i,
-                "content_length": len(chunk_text)
-            }
+            metadata = dict(getattr(chunk_doc, "metadata", {}))
             metadatas.append(metadata)
 
-        # Add to Chroma collection
         self.collection.add(
             ids=ids,
             embeddings=embeddings.tolist(),
             metadatas=metadatas,
-            documents=chunks
+            documents=chunk_text
         )
         print(f"[INFO] Successfully added {len(chunks)} chunks.")
         print(f"[INFO] Total documents in collection: {self.collection.count()}")
 
-    def query(self, query_text: str, top_k: int = 5):
+    def query_db(self, query_text: str, top_k: int = 5):
         """
         Query ChromaDB using Azure embeddings.
         """
@@ -98,8 +95,9 @@ if __name__ == "__main__":
     store = ChromaVectorStore(persist_directory="chromadb_store")
     store.add_documents(docs)
 
-    query_result = store.query("Explain attention mechanism", top_k=3)
+    query_result = store.query_db("Explain attention mechanism", top_k=3)
     for doc, meta, dist in zip(query_result['documents'][0],
                                query_result['metadatas'][0],
                                query_result['distances'][0]):
         print(f"Distance: {dist:.4f}, Text snippet: {doc[:150]}...")
+    print(query_result)

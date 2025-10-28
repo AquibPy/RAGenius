@@ -1,8 +1,9 @@
-from fastapi import FastAPI, HTTPException,UploadFile,File
-from fastapi.responses import StreamingResponse
+from fastapi import FastAPI, HTTPException,UploadFile,File, Request
+from fastapi.responses import StreamingResponse, RedirectResponse, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.templating import Jinja2Templates
 from dotenv import load_dotenv
 from src.data_loader import load_all_documents
-from src.vectorstore import ChromaVectorStore
 from src.search import RAGEngine
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
@@ -44,19 +45,34 @@ async def lifespan(app: FastAPI):
         logger.error(f"[BOOT] Failed to initialize RAG Engine: {e}")
         raise
     
-    yield  # Application runs here
-    
-    # Shutdown (cleanup if needed)
+    yield
     logger.info("[SHUTDOWN] Cleaning up resources...")
-    # Add any cleanup code here if needed
-    # e.g., rag_engine.vectorstore.close() if you have a close method
+
 
 app = FastAPI(
     title="RAG Search API",
     description="An API for Basic and Streaming RAG Search using Azure OpenAI + ChromaDB",
     version="1.0.0",
-    lifespan=lifespan  # Pass the lifespan context manager here
+    lifespan=lifespan
 )
+
+templates = Jinja2Templates(directory="templates")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # TODO: Restrict to your frontend domain in production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.get("/")
+async def home():
+    return RedirectResponse("/ragui")
+
+@app.get("/ragui", description="Provides a simple web interface to interact with the RAG")
+async def chat(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 
 @app.post("/rag/basic")
 async def basic_rag(request: QueryRequest):
@@ -70,10 +86,13 @@ async def basic_rag(request: QueryRequest):
         if "error" in result:
             raise HTTPException(status_code=500, detail=result["error"])
         
-        return {
+        response = {
             "query": request.query,
-            "answer": result["answer"]
+            "answer": result.get("answer") if isinstance(result, dict) else result,
+            "sources": result.get("sources", []) if isinstance(result, dict) else [],
         }
+        return JSONResponse(content=response, status_code=200)
+    
     except Exception as e:
         logger.error(f"Error in basic_rag: {e}")
         raise HTTPException(status_code=500, detail=str(e))

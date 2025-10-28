@@ -13,3 +13,4 @@ wheels/
 chromadb_store
 data/pdf_files
 data/text_files
+upload_files/

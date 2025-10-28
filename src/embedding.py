@@ -38,8 +38,8 @@ class EmbeddingPipeline:
         )
         split_docs = text_splitter.split_documents(documents)
         print(f"Split {len(documents)} documents into {len(split_docs)} chunks")
-        chunk_texts = [doc.page_content for doc in split_docs]
-        return chunk_texts
+        # chunk_texts = [doc.page_content for doc in split_docs]
+        return split_docs
 
     def generate_embeddings(self, texts: List[str]) -> np.ndarray:
         if not isinstance(texts, list) or not all(isinstance(t, str) for t in texts):

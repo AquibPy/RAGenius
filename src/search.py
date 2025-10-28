@@ -95,7 +95,7 @@ class RAGEngine:
     ) -> Dict[str, Any]:
         """Retrieves context and gets LLM-generated response (non-streaming)."""
         try:
-            results = self.vectorstore.query(question, top_k=top_k)
+            results = self.vectorstore.query_db(question, top_k=top_k)
             docs = results.get("documents", [[]])[0]
 
             if not docs:
@@ -136,7 +136,7 @@ class RAGEngine:
     ) -> AsyncGenerator[str, None]:
         """Async generator for true token-by-token streaming output."""
         try:
-            results = self.vectorstore.query(question, top_k=top_k)
+            results = self.vectorstore.query_db(question, top_k=top_k)
             docs = results.get("documents", [[]])[0]
 
             if not docs:
@@ -165,11 +165,12 @@ if __name__ == "__main__":
 
     # Normal Query
     result = rag.query("What is the attention mechanism?", top_k=3, summarize=True)
-    print("\nAnswer:\n", result["answer"])
+    # print("\nAnswer:\n", result["answer"])
+    print(result)
 
     # Streaming Example
-    async def main():
-        async for token in rag.stream_query("Explain transformers in NLP", top_k=3):
-            print(token, end="", flush=True)
+    # async def main():
+    #     async for token in rag.stream_query("Explain transformers in NLP", top_k=3):
+    #         print(token, end="", flush=True)
 
-    asyncio.run(main())
+    # asyncio.run(main())
