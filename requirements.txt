@@ -10,3 +10,5 @@ openai
 python-dotenv
 langchain-openai
 fastapi[standard]
+langchain-groq
+langchain-google-genai

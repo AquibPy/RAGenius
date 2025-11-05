@@ -5,8 +5,8 @@ from typing import Dict, Any, AsyncGenerator, Optional, List
 from dotenv import load_dotenv
 from langchain_openai import AzureChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
-from src.vectorstore import ChromaVectorStore
-from src.data_loader import load_all_documents
+from api.src.vectorstore import ChromaVectorStore
+from api.src.data_loader import load_all_documents
 
 load_dotenv()
 
@@ -29,30 +29,51 @@ class RAGEngine:
     def __init__(
         self,
         persist_dir: str = "chromadb_store",
-        embedding_model: Optional[str] = None,
+        llm_provider="azure",      
+        embedding_provider="azure", 
         llm_model: str = "gpt-4",
         temperature: float = 0.7,
-        streaming: bool = True
+        streaming: bool = True,
     ):
-        # Initialize Vector Store
-        self.vectorstore = ChromaVectorStore(
-            persist_directory=persist_dir,
-            embedding_model=embedding_model
-        )
+        
+        self.llm_provider = llm_provider.lower()
+        self.embedding_provider = embedding_provider.lower()
 
+        self.vectorstore = ChromaVectorStore(
+                persist_directory=persist_dir,
+                # embedding_model=self.embedding_provider,
+                provider=self.embedding_provider
+            )
+        
+        if self.llm_provider=="azure":
+            # Initialize Azure Chat LLM
+            self.llm = AzureChatOpenAI(
+                openai_api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+                azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+                azure_deployment=os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME"),
+                api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
+                temperature=temperature,
+                model_name=llm_model,
+                streaming=streaming
+            )
+        elif self.llm_provider=="groq":
+            logger.info("[LLM] Using Groq model")
+            from langchain_groq import ChatGroq
+
+            self.llm = ChatGroq(
+                api_key=os.getenv("GROQ_API_KEY"),
+                model="openai/gpt-oss-120b",
+                temperature=0.7,
+                max_retries=3,
+                streaming=streaming,
+                reasoning_format="parsed"
+                )
+        else:
+            raise ValueError(f"Invalid provider: {self.llm_provider}. Use 'azure' or 'groq'.")
+        
         # Ensure vectorstore is populated
         self._ensure_documents_loaded()
 
-        # Initialize Azure Chat LLM
-        self.llm = AzureChatOpenAI(
-            openai_api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-            azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-            azure_deployment=os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME"),
-            api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
-            temperature=temperature,
-            model_name=llm_model,
-            streaming=streaming
-        )
 
         self.history: List[Dict[str, Any]] = []
 
@@ -161,12 +182,12 @@ class RAGEngine:
             yield f"[Error] {str(e)}"
 
 if __name__ == "__main__":
-    rag = RAGEngine()
+    rag = RAGEngine(llm_provider="azure",embedding_provider="gemini")
 
     # Normal Query
     result = rag.query("What is the attention mechanism?", top_k=3, summarize=True)
-    # print("\nAnswer:\n", result["answer"])
-    print(result)
+    print("\nAnswer:\n", result["answer"])
+    # print(result)
 
     # Streaming Example
     # async def main():

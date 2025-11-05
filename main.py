@@ -1,9 +1,9 @@
 import argparse
 import asyncio
 from dotenv import load_dotenv
-from src.data_loader import load_all_documents
-from src.vectorstore import ChromaVectorStore
-from src.search import RAGEngine  # unified RAG class
+from api.src.data_loader import load_all_documents
+from api.src.vectorstore import ChromaVectorStore
+from api.src.search import RAGEngine  # unified RAG class
 
 load_dotenv(override=True)
 

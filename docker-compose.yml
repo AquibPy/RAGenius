@@ -1,8 +1,9 @@
 version: '3.8'
 
 services:
-  ragenius:
+  multi_rag_api:
     build: .
+    container_name: multi-provider-rag
     ports:
       - "8000:8000"
     volumes:
@@ -11,4 +12,11 @@ services:
       - ./upload_files:/app/upload_files
     env_file:
       - .env
+    environment:
+      - DEFAULT_EMBEDDING_PROVIDER=azure
+      - DEFAULT_LLM_PROVIDER=azure
     restart: unless-stopped
+    command: >
+      uvicorn api.multi_provider_rag_api:app
+      --host 0.0.0.0
+      --port 8000

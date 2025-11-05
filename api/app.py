@@ -3,8 +3,8 @@ from fastapi.responses import StreamingResponse, RedirectResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
 from dotenv import load_dotenv
-from src.data_loader import load_all_documents
-from src.search import RAGEngine
+from api.src.data_loader import load_all_documents
+from api.src.search import RAGEngine
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
 import logging
